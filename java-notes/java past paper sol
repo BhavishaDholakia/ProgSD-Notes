@@ -286,3 +286,219 @@ public class GraphExplorer {
     }
 }
 
+
+=====================================================
+
+
+
+// AnimalSize.java (Enum) - Refer the AnimalSize enum which is already given
+package petcare;
+
+public enum AnimalSize {
+    SMALL, MEDIUM, LARGE;
+}
+
+-----------------------------------------
+
+// Animal.java (Class) - Refer the skeleton of the Animal class which is already given
+package petcare;
+
+import java.util.Objects;
+
+public class Animal {
+    private String name;
+    private AnimalSize size;
+    private int comfortableTempLow;
+    private int comfortableTempHigh;
+
+    public Animal(String name, AnimalSize size, int comfortableTempLow, int comfortableTempHigh) {
+        setName(name);
+        setSize(size);
+        setComfortableTempLow(comfortableTempLow);
+        setComfortableTempHigh(comfortableTempHigh);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        if (name == null || name.length() < 3) {
+            throw new IllegalArgumentException("Name must be at least 3 characters long.");
+        }
+        this.name = name;
+    }
+
+    public AnimalSize getSize() {
+        return size;
+    }
+
+    public void setSize(AnimalSize size) {
+        if (size == null) {
+            throw new IllegalArgumentException("Size cannot be null.");
+        }
+        this.size = size;
+    }
+
+    public int getComfortableTempLow() {
+        return comfortableTempLow;
+    }
+
+    public void setComfortableTempLow(int comfortableTempLow) {
+        if (comfortableTempLow < 0 || comfortableTempLow > 50) {
+            throw new IllegalArgumentException("Temperature must be between 0 and 50.");
+        }
+        this.comfortableTempLow = comfortableTempLow;
+    }
+
+    public int getComfortableTempHigh() {
+        return comfortableTempHigh;
+    }
+
+    public void setComfortableTempHigh(int comfortableTempHigh) {
+        if (comfortableTempHigh < 0 || comfortableTempHigh > 50) {
+            throw new IllegalArgumentException("Temperature must be between 0 and 50.");
+        }
+        this.comfortableTempHigh = comfortableTempHigh;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Animal[name=%s, size=%s, tempRange=(%d-%d)]", name, size, comfortableTempLow, comfortableTempHigh);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Animal animal = (Animal) o;
+        return Objects.equals(name, animal.name) && size == animal.size;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, size);
+    }
+}
+
+-----------------------------------------
+
+// Enclosure.java (Class)
+package petcare;
+
+public class Enclosure {
+    private final AnimalSize size;
+    private final int temperature;
+    private final int runningCosts;
+    private Animal occupant;
+
+    public Enclosure(AnimalSize size, int temperature, int runningCosts) {
+        if (temperature < 0 || temperature > 50) {
+            throw new IllegalArgumentException("Temperature must be between 0 and 50.");
+        }
+        if (runningCosts < 0) {
+            throw new IllegalArgumentException("Running costs cannot be negative.");
+        }
+        this.size = size;
+        this.temperature = temperature;
+        this.runningCosts = runningCosts;
+        this.occupant = null;
+    }
+
+    public AnimalSize getSize() {
+        return size;
+    }
+
+    public int getTemperature() {
+        return temperature;
+    }
+
+    public int getRunningCosts() {
+        return runningCosts;
+    }
+
+    public Animal getOccupant() {
+        return occupant;
+    }
+
+    public boolean checkCompatibility(Animal animal) {
+        return animal.getSize().ordinal() <= size.ordinal() &&
+                temperature >= animal.getComfortableTempLow() &&
+                temperature <= animal.getComfortableTempHigh();
+    }
+
+    public void addAnimal(Animal animal) {
+        if (occupant != null) {
+            throw new IllegalArgumentException("Enclosure already has an occupant.");
+        }
+        if (!checkCompatibility(animal)) {
+            throw new IllegalArgumentException("Animal is not compatible with this enclosure.");
+        }
+        this.occupant = animal;
+    }
+
+    public void removeAnimal() {
+        this.occupant = null;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Enclosure[size=%s, temperature=%d, runningCosts=%d, occupant=%s]",
+                size, temperature, runningCosts, occupant);
+    }
+}
+
+-----------------------------------------
+
+// PetService.java (Class)
+package petcare;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class PetService {
+    private final List<Enclosure> enclosures;
+
+    public PetService() {
+        this.enclosures = new ArrayList<>();
+    }
+
+    public void addEnclosure(Enclosure enclosure) {
+        enclosures.add(enclosure);
+    }
+
+    public void printAllEnclosures() {
+        for (Enclosure enclosure : enclosures) {
+            System.out.println(enclosure);
+        }
+    }
+
+    public boolean allocateAnimal(Animal animal) {
+        Enclosure bestEnclosure = null;
+
+        for (Enclosure enclosure : enclosures) {
+            if (enclosure.getOccupant() == null && enclosure.checkCompatibility(animal)) {
+                if (bestEnclosure == null || enclosure.getRunningCosts() < bestEnclosure.getRunningCosts()) {
+                    bestEnclosure = enclosure;
+                }
+            }
+        }
+
+        if (bestEnclosure != null) {
+            bestEnclosure.addAnimal(animal);
+            return true;
+        }
+        return false;
+    }
+
+    public void removeAnimal(Animal animal) {
+        for (Enclosure enclosure : enclosures) {
+            if (animal.equals(enclosure.getOccupant())) {
+                enclosure.removeAnimal();
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Animal not found in any enclosure.");
+    }
+}
+
