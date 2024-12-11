@@ -403,6 +403,113 @@ Text file .java
 University WebsiteMoodle Mobile AppAccessibilityPrivacy and CookiesHelp with this page
 The University of Glasgow is a registered Scottish charity: Registration Number SC004401
 
------
-Q2 ?
-uploaded python.pdf file and and excel sheet data
+
+
+remove all comments, change variable name
+--------------------------------------------
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import sqlite3
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Task 1a: Data Loading and Preprocessing
+# Load the CSV file
+sales_data = pd.read_csv('sales_data.csv')
+
+# Data Cleaning
+# 1. Fill missing values: Fill missing product names with 'Unknown', prices with median price, and totals with calculated values
+sales_data['Product'].fillna('Unknown', inplace=True)
+sales_data['Price'].fillna(sales_data['Price'].median(), inplace=True)
+sales_data['Total'].fillna(sales_data['Quantity'] * sales_data['Price'], inplace=True)
+
+# 2. Convert Date column to datetime object
+sales_data['Date'] = pd.to_datetime(sales_data['Date'], format='%d/%m/%Y')
+
+# 3. Ensure Total column is correct
+sales_data['Total'] = sales_data['Quantity'] * sales_data['Price']
+
+# Verify data after cleaning
+print("Data after cleaning:\n", sales_data.head())
+
+# Task 1b: Data Visualization
+# 1. Product Sales Distribution
+product_sales = sales_data.groupby('Product')['Quantity'].sum()
+product_sales.plot(kind='bar', title='Product Sales Distribtion', xlabel='Product', ylabel='Total Quantity Sold ')
+plt.show()
+
+# 2. Sales Over Time
+sales_data['Month'] = sales_data['Date'].dt.to_period('M')
+monthly_sales = sales_data.groupby('Month')['Total'].sum()
+monthly_sales.plot(kind='line', title='Total Sales Over Time', xlabel='Month', ylabel='Total Sales')
+plt.show()
+
+# Task 2a: Database Creation and Data Insertion
+# Create SQLite database and table
+conn = sqlite3.connect('SalesDB.db')
+cursor = conn.cursor()
+cursor.execute('''CREATE TABLE IF NOT EXISTS Sales (Date TEXT,Product TEXT, Quantity INTEGER,Price REAL,Total REAL)''')
+
+# Insert cleaned data into the Sales table
+sales_data.to_sql('Sales', conn, if_exists='replace', index=False)
+
+# Task 2b: Querying the Database
+# 1. Total Sales Calculation for 2023
+query_total_sales = ''' SELECT SUM(Total) AS TotalSales2023 FROM Sales WHERE Date BETWEEN '2023-01-01' AND '2023-12-31' '''
+cursor.execute(query_total_sales)
+print("Total Sales in 2023:", cursor.fetchone()[0])
+
+# 2. Product Sales Summary
+query_product_sales = ''' SELECT Product, SUM(Quantity) AS TotalQuantity FROM Sales WHERE Date BETWEEN '2023-01-01' AND '2023-12-31' GROUP BY Product ORDER BY TotalQuantity DESC '''
+product_sales_summary = cursor.execute(query_product_sales).fetchall()
+print("Product Sales Summary in 2023:\n", product_sales_summary)
+
+# Task 3: Neural Network Implementation
+# Task 3a: Model Initialization
+class SimpleNN(nn.Module):
+    def __init__(self):
+        super(SimpleNN, self).__init__()
+        self.fc1 = nn.Linear(10, 5)
+        self.relu1 = nn.ReLU()
+        self.fc2 = nn.Linear(5, 3)
+        self.relu2 = nn.ReLU()
+        self.fc3 = nn.Linear(3, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.relu1(self.fc1(x))
+        x = self.relu2(self.fc2(x))
+        x = self.sigmoid(self.fc3(x))
+        return x
+
+model = SimpleNN()
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Task 3b: Data Generation
+input_data = torch.randn(100, 10)
+target_data = torch.randn(100, 1)
+
+# Task 3c: Training the Network
+losses = []
+for epoch in range(20):
+    optimizer.zero_grad()
+    outputs = model(input_data)
+    loss = criterion(outputs, target_data)
+    loss.backward()
+    optimizer.step()
+    losses.append(loss.item())
+    print(f"Epoch {epoch+1}, Loss: {loss.item()}")
+
+# Task 3d: Loss Visualization
+plt.plot(range(1, 21), losses, marker='o')
+plt.title('Training Loss Over Epochs')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.show()
+
+# Close the database connection
+conn.close()
+
